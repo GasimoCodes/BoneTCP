@@ -1,6 +1,7 @@
 ﻿using BoneTCP;
 using Pastel;
 using System;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -29,6 +30,7 @@ namespace BoneTCP
 
         // The list to store the received messages in
         private List<Message> receivedMessages;
+        private readonly object receivedMessagesLock = new object();
 
         // The UDP client to use for sending and receiving messages
         private UdpClient client;
@@ -49,15 +51,24 @@ namespace BoneTCP
 
         Random RAND = new Random();
 
-        // Delegate for the MessageReceived event
-        public delegate void MessageReceivedEventHandler(Message msg, IPEndPoint endPoint);
+
+        // Event for the PART RECEIVED event
+        public delegate void PartReceivedEventHandler(Message msg, IPEndPoint endPoint);
+        public event PartReceivedEventHandler OnPartReceived;
+
 
         // Event for the MessageReceived event
-        public event MessageReceivedEventHandler MessageReceived;
+        public delegate void MessageReceivedEventHandler(Message msg, IPEndPoint endPoint);
+        public event MessageReceivedEventHandler OnMessageReceived;
+
+
+
 
         private bool enableLogging = false;
 
         private int seq = 0;
+        private int nextReadSeq = 1;
+
 
         /// <summary>
         /// Creates an slidingWindow instance
@@ -116,7 +127,7 @@ namespace BoneTCP
             else
             {
                 bool isResend;
-                
+
                 // If this message has already been sent
                 lock (unacknowledgedMessagesLock)
                 {
@@ -124,7 +135,8 @@ namespace BoneTCP
                 }
 
                 // If this is a new message
-                if (!isResend) { 
+                if (!isResend)
+                {
                     seq++;
                     msg.SequenceNumber = seq;
                 }
@@ -163,7 +175,7 @@ namespace BoneTCP
                 // Return a success message
                 if (enableLogging)
                     SliderLogger.Log("S: " + msg.ToString().Pastel(ConsoleColor.Gray), client, endPoint.Port.ToString(), windowPos);
-               
+
                 return;
             }
         }
@@ -181,7 +193,7 @@ namespace BoneTCP
             /*
             if(endPoint.Port == 6900)
             Console.WriteLine("ReceivedStuff from " + endPoint.Port);*/
-            
+
 
             // Deserialize the message bytes to a Message object
             Message msg = MessageSerializer.Deserialize(messageBytes);
@@ -205,33 +217,36 @@ namespace BoneTCP
                         SliderLogger.Log($"R: {msg.ToString().Pastel(ConsoleColor.Blue)}", client, endPoint.Port.ToString(), windowPos);
 
                     windowPos++;
+
                     SendNextMessage();
                 }
                 else
                 {
                     // The message is not an ACK message, add it to the received messages list
+
                     
-                    // Increment the window position
-                    // WATCH OUT for ALREADY RECEIVED BAD BOI SWININ MESSAGES
-                    if(!receivedMessages.Contains(msg))
-                    { 
-                        windowPos++;
-                        receivedMessages.Add(msg);
-                        
-                        /*
-                        foreach(Message m in receivedMessages)
-                        {
-                            Console.Write($"SQ:{m.SequenceNumber}: {m.Data}   ");
-                        }
-                        */
-
-                        // Console.WriteLine(receivedMessages.Count.ToString());
-                    }
-
                     // Notify console
                     if (enableLogging)
                         SliderLogger.Log("R: " + msg.ToString().Pastel(ConsoleColor.Gray), client, endPoint.Port.ToString(), windowPos);
 
+                    
+                    // Increment the window position
+                    lock (receivedMessagesLock)
+                    {
+
+                        if (!receivedMessages.Contains(msg))
+                        {
+                            Console.WriteLine("ADD MESSAG! (" + receivedMessages.Count);
+                            windowPos++;
+                            receivedMessages.Add(msg);
+                        }
+                    }
+
+
+
+
+                    // Check for raising events
+                    checkMessageQueueForSend();
 
                     // Send an ACK message for the received message
                     SendAck(msg.SequenceNumber);
@@ -241,7 +256,7 @@ namespace BoneTCP
 
 
                     // Raise the MessageReceived event
-                    MessageReceived?.Invoke(msg, endPoint);
+                    OnPartReceived?.Invoke(msg, endPoint);
 
                     return;/* "Received message with data: " + msg.Data;*/
                 }
@@ -293,7 +308,7 @@ namespace BoneTCP
             if (SIM_FAIL)
             {
                 if (RAND.Next(10) > 7)
-                { 
+                {
                     ackMessage.Checksum++;
                 }
             }
@@ -363,7 +378,37 @@ namespace BoneTCP
         }
 
 
+        /// <summary>
+        /// Raises an OnMessageReceived event if any unread messages exist.
+        /// </summary>
+        private void checkMessageQueueForSend()
+        {
+            if (receivedMessages.Count == 0)
+                return;
 
+
+            lock (receivedMessagesLock)
+            {
+                for (int i = 0; i < receivedMessages.Count; i++)
+                {
+                    // Console.WriteLine("Comp: " + receivedMessages[i].SequenceNumber + " to " + nextReadSeq + " total: " + receivedMessages.Count() + " ran " + i);
+                    
+                    if (receivedMessages[i].SequenceNumber == (nextReadSeq))
+                    {
+                        OnMessageReceived.Invoke(receivedMessages[i], endPoint);
+                        nextReadSeq++;
+
+                        // Reset counter
+                        checkMessageQueueForSend();
+                        return;
+                    }
+
+                }
+            }
+
+            
+
+        }
 
 
     }

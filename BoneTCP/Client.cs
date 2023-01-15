@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using static BoneTCP.SlidingWindow;
 
 namespace BoneTCP
 {
@@ -20,6 +21,13 @@ namespace BoneTCP
         private SlidingWindow slidingWindow;
 
         IPEndPoint SERVER_ENDPOINT = null;
+
+
+        /// <summary>
+        /// Event raised when a message is succesfully received.
+        /// </summary>
+        public MessageReceivedEventHandler onMessageReceived;
+
 
         public int RunningPort
         {
@@ -46,7 +54,7 @@ namespace BoneTCP
             slidingWindow = new SlidingWindow(64, client, SERVER_ENDPOINT, enableLogging);
 
             // Set the message received event handler
-            slidingWindow.MessageReceived += OnMessageReceived;
+            slidingWindow.OnMessageReceived += MessageReceivedCall;
 
         }
 
@@ -72,21 +80,16 @@ namespace BoneTCP
         }
 
 
-
-
-
-
-
-
         /// <summary>
         /// Callback when a message gets received
         /// </summary>
         /// <param name="msg"></param>
         /// <param name="endPoint"></param>
-        private void OnMessageReceived(Message msg, IPEndPoint endPoint)
+        private void MessageReceivedCall(Message msg, IPEndPoint endPoint)
         {
-            // Print the received message to the console
-            // Console.WriteLine($"[CL] Received message from {endPoint}: {msg.Data}");
+            // TO-DO: Fix this line.
+            if(this.onMessageReceived != null)
+            this.onMessageReceived.Invoke(msg, endPoint);
         }
 
 

@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using static BoneTCP.SlidingWindow;
 
 namespace BoneTCP
 {
@@ -12,7 +13,7 @@ namespace BoneTCP
     internal class Server
     {
         // UDP client to send and receive messages
-        private UdpClient server;
+        private UdpClient server = null;
 
         // Dictionary to store the sliding windows for each client
         private ConcurrentDictionary<IPEndPoint, SlidingWindow> slidingWindows;
@@ -26,6 +27,13 @@ namespace BoneTCP
                 return ((IPEndPoint)server.Client.LocalEndPoint).Port;
             }
         }
+
+        /// <summary>
+        /// Event raised when a message is succesfully received.
+        /// </summary>
+        public MessageReceivedEventHandler onMessageReceived;
+
+
 
 
         /// <summary>
@@ -53,7 +61,7 @@ namespace BoneTCP
         public void Start()
         {
             // Start listening for incoming messages
-            server.BeginReceive(new AsyncCallback(OnMessageReceived), null);
+            server.BeginReceive(new AsyncCallback(PartReceivedEvent), null);
             Console.WriteLine("Server on " + RunningPort);
         }
 
@@ -62,24 +70,63 @@ namespace BoneTCP
         /// When a message gets received, checks if an existing sliding window exists. If not, creates.
         /// </summary>
         /// <param name="ar">AsyncResult for the incoming conneciton</param>
-        private void OnMessageReceived(IAsyncResult ar)
+        private void PartReceivedEvent(IAsyncResult ar)
         {
 
             // Get the client end point
             IPEndPoint endPoint = new IPEndPoint(IPAddress.Any, 0);
+            server.EndReceive(ar, ref endPoint);
 
             // Get the sliding window for the client, or create a new one if it doesn't exist
             if (!slidingWindows.TryGetValue(endPoint, out SlidingWindow slidingWindow))
             {
                 slidingWindow = new SlidingWindow(64, server, endPoint, enableLogging);
+                slidingWindow.OnMessageReceived += MessageReceivedCall;
                 slidingWindows.TryAdd(endPoint, slidingWindow);
             }
 
             slidingWindow.Receive();
-
-
-            server.BeginReceive(OnMessageReceived, null);
+            server.BeginReceive(PartReceivedEvent, null);
+        
         }
+
+
+        /// <summary>
+        /// Callback when a message gets received
+        /// </summary>
+        /// <param name="msg"></param>
+        /// <param name="endPoint"></param>
+        private void MessageReceivedCall(Message msg, IPEndPoint endPoint)
+        {
+            this.onMessageReceived.Invoke(msg, endPoint);
+        }
+
+
+
+        /// <summary>
+        /// Sends a message to an existing client connection.
+        /// </summary>
+        /// <param name="message">Message contents to be sent</param>
+        public void SendMessage(string message, IPEndPoint target)
+        {
+
+            // Get the sliding window for the client, or create a new one if it doesn't exist
+            if (!slidingWindows.TryGetValue(target, out SlidingWindow slidingWindow))
+            {
+                throw (new Exception("Target client connection does not exist."));
+            }
+
+            // Create a new message
+            Message msg = new Message(message);
+
+            // Send the message
+            slidingWindow.Send(msg);
+
+
+        }
+
+
+
 
     }
 }
