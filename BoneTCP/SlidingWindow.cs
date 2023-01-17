@@ -63,7 +63,6 @@ namespace BoneTCP
 
 
 
-
         private bool enableLogging = false;
 
         private int seq = 0;
