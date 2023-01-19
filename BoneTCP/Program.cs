@@ -1,4 +1,6 @@
-﻿using System.Net;
+﻿using System.ComponentModel;
+using System.Net;
+using System.Text;
 
 namespace BoneTCP
 {
@@ -6,6 +8,18 @@ namespace BoneTCP
     {
         static void Main(string[] args)
         {
+
+            Message a = new Message("Hello world!!!");
+            a.SeqID = 69;
+
+            Fragment[] frags = FragmentWorker.SerializeMessage(a, 8);
+
+
+            Message m = FragmentWorker.ParseMessage(frags);
+            Console.WriteLine(m.Data + " (/ " + m.SeqID);
+
+
+            /*
             Server s = new Server(6900, true);
             s.Start();
 
@@ -14,13 +28,13 @@ namespace BoneTCP
             Client e = new Client("127.0.0.1", 6900, false);
             
 
-            s.onMessageReceived += (Message m, IPEndPoint p) => {
+            s.onMessageReceived += (Fragment m, IPEndPoint p) => {
                 Console.WriteLine("--- Sevr received: " + m.Data);
                 // s.SendMessage("HJenlo", p);
             };
 
 
-            c.onMessageReceived += (Message m, IPEndPoint p) => {
+            c.onMessageReceived += (Fragment m, IPEndPoint p) => {
                 Console.WriteLine("CLNT received: " + m.Data);
             };
 
@@ -53,7 +67,7 @@ namespace BoneTCP
             }).Start();
             
             
-
+            */
 
             //while (true) ;
 
