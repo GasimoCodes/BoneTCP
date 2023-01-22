@@ -8,38 +8,39 @@ namespace BoneTCP
     {
         static void Main(string[] args)
         {
-
-            Message a = new Message("Hello world!!!");
+            /*
+            Message a = new Message("");
             a.SeqID = 69;
 
-            Fragment[] frags = FragmentWorker.SerializeMessage(a, 8);
+            Fragment[] frags = FragmentWorker.SerializeMessage(a, 1024);
 
 
             Message m = FragmentWorker.ParseMessage(frags);
-            Console.WriteLine(m.Data + " (/ " + m.SeqID);
+            Console.WriteLine(m.Data + " / " + m.SeqID);
+            */
 
 
-            /*
-            Server s = new Server(6900, true);
+            Server s = new Server(6900, false);
             s.Start();
 
 
-            Client c = new Client("127.0.0.1", 6900, false);
-            Client e = new Client("127.0.0.1", 6900, false);
+            Client c = new Client("127.0.0.1", 6900, true);
+           // Client e = new Client("127.0.0.1", 6900, true);
             
 
-            s.onMessageReceived += (Fragment m, IPEndPoint p) => {
+            s.onMessageReceived += (Message m, IPEndPoint p) => {
                 Console.WriteLine("--- Sevr received: " + m.Data);
                 // s.SendMessage("HJenlo", p);
             };
 
 
-            c.onMessageReceived += (Fragment m, IPEndPoint p) => {
+            c.onMessageReceived += (Message m, IPEndPoint p) => {
                 Console.WriteLine("CLNT received: " + m.Data);
             };
 
+            c.SendMessage("Hello world");
 
-            
+            /*
             new Thread(() =>
             {
 
@@ -66,8 +67,8 @@ namespace BoneTCP
 
             }).Start();
             
-            
             */
+            
 
             //while (true) ;
 

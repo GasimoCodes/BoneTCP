@@ -16,12 +16,13 @@ namespace BoneTCP
     internal static class SliderLogger
     {
         static Dictionary<string, ConsoleColor> assign = new Dictionary<string, ConsoleColor>();
+        private static readonly object assignLock = new object();
 
-        public static void Log(string message, string from, string to, int? msgID = null)
+        public static void Log(string message, string from = "", string to = "", int? msgID = null)
         {
             string msgIDCont = "";
 
-            if(msgID != null)
+            if (msgID != null)
             {
                 msgIDCont = "[" + msgID + "]";
             }
@@ -47,13 +48,17 @@ namespace BoneTCP
 
         static string checkRegisterAssoc(string term)
         {
-            if (!assign.ContainsKey(term))
+            lock (assignLock)
             {
-                try { 
-                assign.Add(term, (ConsoleColor)(new Random()).Next(0, 15));
-                } catch { return term.PastelBg(assign[term]); }
+                if (!assign.ContainsKey(term))
+                {
+                    try
+                    {
+                        assign.Add(term, (ConsoleColor)(new Random()).Next(0, 15));
+                    }
+                    catch { return term.PastelBg(assign[term]); }
+                }
             }
-
             return term.PastelBg(assign[term]);
         }
 

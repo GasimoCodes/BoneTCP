@@ -28,8 +28,9 @@ namespace BoneTCP
                 {
                     binaryWriter.Write(((byte)fragment.flag));
                     binaryWriter.Write(fragment.descriptor);
-                    binaryWriter.Write(fragment.Data);
 
+                    if(fragment.Data!= null)
+                    binaryWriter.Write(fragment.Data);
 
                     byte[] toCpy = memoryStream.ToArray();
 

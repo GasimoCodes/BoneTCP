@@ -20,6 +20,8 @@ namespace BoneTCP
 
         bool enableLogging = false;
 
+        int maxByteSize = 1024;
+
         public int RunningPort
         {
             get
@@ -41,17 +43,17 @@ namespace BoneTCP
         /// </summary>
         /// <param name="PORT">Port on which will the server listen for new connections</param>
         /// <param name="enableLogging">Enable logging into console</param>
-        public Server(int PORT = 6900, bool enableLogging = false)
+        public Server(int PORT = 6900, bool enableLogging = false, int maxByteSize = 1024)
         {
             // Create a new UDP client for sending and receiving messages
             server = new UdpClient(PORT);
 
             this.enableLogging = enableLogging;
-
+            this.maxByteSize = maxByteSize;
+            
             // Create a new dictionary to store the sliding windows for each client
             slidingWindows = new ConcurrentDictionary<IPEndPoint, SlidingWindow>();
 
-            Console.WriteLine("Server set to " + RunningPort);
         }
 
 
@@ -60,9 +62,12 @@ namespace BoneTCP
         /// </summary>
         public void Start()
         {
+            if (enableLogging)
+                SliderLogger.Log("Server on " + RunningPort);
+
             // Start listening for incoming messages
             server.BeginReceive(new AsyncCallback(PartReceivedEvent), null);
-            Console.WriteLine("Server on " + RunningPort);
+            
         }
 
         
@@ -80,7 +85,7 @@ namespace BoneTCP
             // Get the sliding window for the client, or create a new one if it doesn't exist
             if (!slidingWindows.TryGetValue(endPoint, out SlidingWindow slidingWindow))
             {
-                slidingWindow = new SlidingWindow(64, server, endPoint, enableLogging);
+                slidingWindow = new SlidingWindow(server, endPoint, maxByteSize, enableLogging);
                 slidingWindow.OnMessageReceived += MessageReceivedCall;
                 slidingWindows.TryAdd(endPoint, slidingWindow);
             }
@@ -120,7 +125,7 @@ namespace BoneTCP
             Message msg = new Message(message);
 
             // Send the message
-            slidingWindow.Send(msg);
+            slidingWindow.AddMessage(msg);
 
 
         }

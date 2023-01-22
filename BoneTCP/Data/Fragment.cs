@@ -13,7 +13,7 @@ namespace BoneTCP
         public flagType flag = flagType.Message;
 
         /// <summary>
-        /// Position of sliding window or slidingw
+        /// Position of sliding window
         /// </summary>
         public uint descriptor = 0;
 
@@ -42,11 +42,11 @@ namespace BoneTCP
             switch(flag)
             {
                 case flagType.Message:
-                    return $"Pos:{descriptor}, DATA: ({Data})";
+                    return $"POS:{descriptor}, DATA: ({Data})";
                 case flagType.Ack:
-                    return "Pos:" + descriptor;
+                    return "ACK_POS:" + descriptor;
                 case flagType.Set:
-                    return "Set: " + descriptor;
+                    return "SET_POS: " + descriptor;
             }
 
             return "";

@@ -1,8 +1,10 @@
 ﻿using BoneTCP;
+using BoneTCP.Data;
 using Pastel;
 using System;
 using System.Diagnostics;
 using System.Net;
+using System.Net.Security;
 using System.Net.Sockets;
 using System.Text;
 using System.Timers;
@@ -15,28 +17,35 @@ namespace BoneTCP
     /// </summary>
     public class SlidingWindow
     {
-        private const int RESEND_INTERVAL = 100; // 1 second
+        private const int RESEND_INTERVAL = 2000;
         private const int TIMEOUT_INTERVAL = 5000; // 5 second
+
 
         // The current position of the window
         private int windowPos;
         Fragment[] windowFragments;
 
+        windowStatus status = windowStatus.None;
 
+        /// <summary>
+        /// The queue to store the messages in before splicing into fragments and sending
+        /// </summary>
+        private Queue<Message> messageQueue = new Queue<Message>();
 
-
-        // The queue to store the messages in
-        private Queue<Message> messageQueue;
-
-        // The list to store the received messages in
+        /// <summary>
+        /// List to store received messages into
+        /// </summary>
         private List<Message> receivedMessages;
         private readonly object receivedMessagesLock = new object();
+
 
         // The UDP client to use for sending and receiving messages
         private UdpClient client;
 
+
         // The IP address and port to send and receive messages from
         private IPEndPoint endPoint;
+
 
         // The timer for resending unacknowledged messages
         private System.Timers.Timer resendTimer;
@@ -58,31 +67,31 @@ namespace BoneTCP
 
         private bool enableLogging = false;
 
-
+        private int maxBytesPerMessage;
 
         /// <summary>
         /// Creates an slidingWindow instance
         /// </summary>
-        /// <param name="windowSize">Size of the slidingWindow dictating how many frames can be sent and expected at once before queueing</param>
         /// <param name="client">An UDP Client instance used for network communication</param>
         /// <param name="endPoint">Target to communicate with</param>
+        /// <param name="maxMessageSizeBytes">Max size of 1 transmitted packet. Window size is calculated for this limit dynamically.</param>
         /// <param name="enableLogging">Enables extensice logging to console</param>
-        public SlidingWindow(int windowSize, UdpClient client, IPEndPoint endPoint, bool enableLogging = true)
+        public SlidingWindow(UdpClient client, IPEndPoint endPoint, int maxMessageSizeBytes = 2048, bool enableLogging = true)
         {
             // Set the window size and UDP client, and initialize the other variables
-            windowFragments = new Fragment[windowSize];
+            windowFragments = new Fragment[0];
             windowPos = 0;
 
             this.client = client;
             this.endPoint = endPoint;
             this.enableLogging = enableLogging;
-
+            this.maxBytesPerMessage = maxMessageSizeBytes;
 
             // Create a timer to resend window
             resendTimer = new System.Timers.Timer();
             resendTimer.Interval = RESEND_INTERVAL;
             resendTimer.AutoReset = true;
-            resendTimer.Elapsed += ResendUnacknowledgedMessages;
+            resendTimer.Elapsed += ResendFragments;
             // Start the timer
             resendTimer.Start();
         }
@@ -90,26 +99,93 @@ namespace BoneTCP
 
 
 
+        /// <summary>
+        /// Schedules an message to be sent once the window is available
+        /// </summary>
+        /// <param name="msg">Message contents</param>
+        public void AddMessage(Message msg)
+        {
+            // Window is not ready to take messages
+            if (windowPos != 0)
+            {
+                messageQueue.Enqueue(msg);
+            }
+            // This is the first message
+            else
+            {
+                messageQueue.Enqueue(msg);
+                SendNextMessage();
+            }
+        }
+
 
         /// <summary>
-        /// Sends a part of the message over UDP
+        /// Method to send the next message in the queue
+        /// </summary>
+        private void SendNextMessage()
+        {
+
+            // Check if the queue is not empty and the window is not full
+            if (messageQueue.Count > 0 && windowPos == 0)
+            {
+                Message curMes = messageQueue.Dequeue();
+                windowFragments = FragmentWorker.SerializeMessage(curMes, maxBytesPerMessage);
+                
+                NegotiateWindowSize(windowFragments.Length).Wait();
+
+                // Begin transmit!
+
+            }
+        }
+
+        /// <summary>
+        /// Call this to begin negotiating of windowSize on the receiver
+        /// </summary>
+        /// <param name="size"></param>
+        /// <returns></returns>
+        private async Task NegotiateWindowSize(int size)
+        {
+            status = windowStatus.Set;
+
+            Fragment negFrag = new Fragment();
+            negFrag.flag = flagType.Set;
+            negFrag.descriptor = (uint)windowFragments.Length;
+            sendFragment(negFrag);
+
+            while (status == windowStatus.Set)
+            {
+                sendFragment(negFrag);
+                Thread.Sleep(RESEND_INTERVAL);
+                Receive();
+            }
+
+            if(enableLogging)
+            SliderLogger.Log($"Negotiated window to {windowFragments.Length}", client, endPoint.Port.ToString());
+
+            return;
+        }
+
+        #region sendMethods
+        
+
+        /// <summary>
+        /// Sends fragment over UDP
         /// </summary>
         /// <param name="frg"></param>
         private void sendFragment(Fragment frg)
         {
 
-            byte[] messageBytes = FragmentWorker.SerializeFragment(frg);
+            byte[] fragBytes = FragmentWorker.SerializeFragment(frg);
 
             // Simulate failure
             if (SIM_FAIL)
             {
                 if (RAND.Next(10) < 7)
-                    messageBytes[messageBytes.Length - 1] = 0;
+                    fragBytes[fragBytes.Length - 1] = 0;
             }
 
-
             // Send the message over UDP
-            client.Send(messageBytes, messageBytes.Length, endPoint);
+            client.Send(fragBytes, fragBytes.Length, endPoint);
 
 
             // Start timer to resend timed out messages (if not running)
@@ -120,156 +196,22 @@ namespace BoneTCP
 
             // Return a success message
             if (enableLogging)
-                SliderLogger.Log("S: " + frg.ToString().Pastel(ConsoleColor.Gray), client, endPoint.Port.ToString(), windowPos);
+                SliderLogger.Log("Send: " + frg.ToString().Pastel(ConsoleColor.Gray), client, endPoint.Port.ToString(), windowPos);
 
             return;
 
         }
-
-
-
-        /// <summary>
-        /// Adds and sends a message using the SlidingWindow
-        /// </summary>
-        /// <param name="msg">Message contents</param>
-        public void Send(Message msg)
-        {
-            // Window is not ready to take messages
-            if(windowPos != 0)
-            {
-                messageQueue.Enqueue(msg);
-            }
-            
-        }
-
-
-
-
-        /// <summary>
-        /// Method to listen for incoming responses
-        /// </summary>
-        /// <param name="ia">IAsyncResult generated by UDP Client</param>
-        public void Receive(IAsyncResult ia = null)
-        {
-
-            // Receive a message over UDP
-            byte[] messageBytes = client.Receive(ref endPoint);
-
-            /*
-            if(endPoint.Port == 6900)
-            Console.WriteLine("ReceivedStuff from " + endPoint.Port);*/
-
-
-            // Deserialize the message bytes to a Message object
-            Fragment msg = FragmentWorker.ParseFragment(messageBytes);
-
-            // Check the checksum of the message
-            if (msg != null)
-            {
-                // The message is valid, remove it from the unacknowledged messages dictionary
-                
-                /*lock (unacknowledgedMessagesLock)
-                {
-                    unacknowledgedMessages.Remove(msg.descriptor);
-                }*/
-
-                // Check if the message is an ACK message
-                if (msg.flag == Data.flagType.Ack)
-                {
-                    // The message is an ACK message, send the next message in the queue
-                    if (enableLogging)
-                        SliderLogger.Log($"R: {msg.ToString().Pastel(ConsoleColor.Blue)}", client, endPoint.Port.ToString(), windowPos);
-
-                    windowPos++;
-
-                    SendNextMessage();
-                }
-                else
-                {
-                    // The message is not an ACK message, add it to the received messages list
-
-                    
-                    // Notify console
-                    if (enableLogging)
-                        SliderLogger.Log("R: " + msg.ToString().Pastel(ConsoleColor.Gray), client, endPoint.Port.ToString(), windowPos);
-
-                    
-                    // IF NIT DUPE, Increment the window position and register message
-
-                            windowPos++;
-
-
-
-                    // Check for raising events
-                    checkMessageQueueForSend();
-
-                    // Send an ACK message for the received message
-                    SendAck(msg.descriptor);
-
-                    // Check if there are any more messages to send
-                    SendNextMessage();
-
-
-                    // Raise the MessageReceived event
-                    OnPartReceived?.Invoke(msg, endPoint);
-
-                    return;/* "Received message with data: " + msg.Data;*/
-                }
-            }
-            else
-            {
-                // The message is invalid, send an ACK message with the expected sequence number
-                if (enableLogging)
-                    SliderLogger.LogError($"Bad Checksum Recevied, dropping...", client, endPoint.Port.ToString(), windowPos);
-            }
-
-            // Return an empty string
-            return;
-        }
-
-        /// <summary>
-        /// Method to send the next message in the queue
-        /// </summary>
-        private void SendNextMessage()
-        {
-
-            // Check if the queue is not empty and the window is not full
-            if (messageQueue.Count > 0 && messageQueue.Count < windowFragments.Length)
-            {
-
-            }
-        }
-
-
 
 
 
         /// <summary>
         /// Method to send an ACK message
         /// </summary>
-        /// <param name="sequenceNumber"></param>
-        private void SendAck(uint sequenceNumber)
+        /// <param name="descriptor"></param>
+        private void SendAck(uint descriptor)
         {
             // Create a new ACK message with the given sequence number
-            Fragment ackMessage = new Fragment(sequenceNumber, Data.flagType.Ack);
-
-            // Simulate failure
-            if (SIM_FAIL)
-            {
-                if (RAND.Next(10) > 7)
-                {
-                    
-                }
-            }
-
-            // Serialize the message object to a byte array
-            byte[] messageBytes = FragmentWorker.SerializeFragment(ackMessage);
-
-
-            if (enableLogging)
-                SliderLogger.Log($"S: {ackMessage.ToString().Pastel(ConsoleColor.Blue)}", client, endPoint.Port.ToString(), windowPos);
-
-            // Send the message over UDP
+            Fragment ackMessage = new Fragment(descriptor, Data.flagType.Ack);
 
             // Simulate failure
             if (SIM_FAIL)
@@ -280,8 +222,124 @@ namespace BoneTCP
                 }
             }
 
-            client.Send(messageBytes, messageBytes.Length, endPoint);
+            sendFragment(ackMessage);
         }
+
+        #endregion
+
+
+        /// <summary>
+        /// Method to listen for incoming responses
+        /// </summary>
+        /// <param name="ia">IAsyncResult generated by UDP Client</param>
+        public void Receive(IAsyncResult ia = null)
+        {
+
+            // Receive a message over UDP
+            byte[] fragBytes = client.Receive(ref endPoint);
+
+            // Deserialize the message bytes to a Message object
+            Fragment frag = FragmentWorker.ParseFragment(fragBytes);
+
+            if (frag == null)
+            {
+                if (enableLogging)
+                    SliderLogger.LogError($"DROP: BAD CHK", client, endPoint.Port.ToString(), windowPos);
+                return;
+            }
+
+            /*
+            if (endPoint.Port == 6900)
+                Console.WriteLine("ReceivedStuff from " + endPoint.Port);
+            */
+
+            switch (frag.flag)
+            {
+                case flagType.Ack:
+                    {
+
+                        if (enableLogging)
+                            SliderLogger.Log($"RECV: {frag.ToString().Pastel(ConsoleColor.Blue)}", client, endPoint.Port.ToString(), windowPos);
+
+
+                        // This might be a negotiation
+                        if(status == windowStatus.Set)
+                        {
+                            if(frag.descriptor == windowFragments.Length)
+                            {
+                                // Negotiation done
+                                status = windowStatus.Transmit;
+                                return;
+                            }
+                        }
+
+
+                        windowPos++;
+                        sendNextFragment();
+                        return;
+                    }
+                case flagType.Message:
+                    {
+                        // Notify console
+                        if (enableLogging)
+                            SliderLogger.Log("RECV: " + frag.ToString().Pastel(ConsoleColor.Gray), client, endPoint.Port.ToString(), windowPos);
+
+
+                        // IF NOT DUPE, Increment the window position and register message
+
+                        windowPos++;
+
+                        // Check for raising events
+                        checkReceivedListForSend();
+
+                        // Send an ACK message for the received message
+                        SendAck(frag.descriptor);
+
+                        // Check if there are any more messages to send
+                        SendNextMessage();
+
+
+                        // Raise the MessageReceived event
+                        OnPartReceived?.Invoke(frag, endPoint);
+
+                        return;/* "Received message with data: " + msg.Data;*/
+                    }
+                case flagType.Set:
+                    {
+                        // If window already set
+                        if (windowFragments.Length != 0 || status != windowStatus.None)
+                        {
+                            if (enableLogging)
+                                SliderLogger.Log("DROP: " + frag.ToString().Pastel(ConsoleColor.Gray), client, endPoint.Port.ToString(), windowPos);
+
+                            SendAck(frag.descriptor);
+                            return;
+                        }
+
+                        if (enableLogging)
+                            SliderLogger.Log($"RECV: {frag.ToString().Pastel(ConsoleColor.Blue)}", client, endPoint.Port.ToString(), windowPos);
+
+                        status = windowStatus.Transmit;
+
+                        // set
+                        windowFragments = new Fragment[frag.descriptor];
+
+                        if (enableLogging)
+                            SliderLogger.Log($"Negotiated window to {windowFragments.Length}", client, endPoint.Port.ToString());
+
+                        SendAck(frag.descriptor);
+
+                        return;
+
+                    }
+            }
+
+        }
+
+
+
+
+        
 
 
         /// <summary>
@@ -289,9 +347,9 @@ namespace BoneTCP
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void ResendUnacknowledgedMessages(object sender, ElapsedEventArgs e)
+        private void ResendFragments(object sender, ElapsedEventArgs e)
         {
-            // Resend entirety of floatingWindow
+            // Resend entirety of slidingWindow
             /*
             lock (unacknowledgedMessagesLock)
             {
@@ -314,7 +372,13 @@ namespace BoneTCP
             ResetResendTimer();
         }
 
+        private void sendNextFragment()
+        {
 
+        }
+
+        #region events
+        
         /// <summary>
         /// Method to reset the resend timer
         /// </summary>
@@ -334,7 +398,7 @@ namespace BoneTCP
         /// <summary>
         /// Raises an OnMessageReceived event if any unread messages exist.
         /// </summary>
-        private void checkMessageQueueForSend()
+        private void checkReceivedListForSend()
         {
             if (receivedMessages.Count == 0)
                 return;
@@ -345,7 +409,7 @@ namespace BoneTCP
                 for (int i = 0; i < receivedMessages.Count; i++)
                 {
                     // Console.WriteLine("Comp: " + receivedMessages[i].SequenceNumber + " to " + nextReadSeq + " total: " + receivedMessages.Count() + " ran " + i);
-                    
+
                     /*
                     if (receivedMessages[i].SequenceNumber == (nextReadSeq))
                     {
@@ -359,10 +423,9 @@ namespace BoneTCP
                     */
                 }
             }
-
-            
-
         }
+
+        #endregion
 
 
     }

@@ -43,7 +43,7 @@ namespace BoneTCP
         /// <param name="SERVER_IP">Target IP Address</param>
         /// <param name="PORT">Target PORT</param>
         /// <param name="enableLogging">Enable logging to console</param>
-        public Client(string SERVER_IP = "127.0.0.1", int PORT = 6900, bool enableLogging = false)
+        public Client(string SERVER_IP = "127.0.0.1", int PORT = 6900, bool enableLogging = false, int maxByteSize = 1024)
         {
             // Create a new UDP client for sending and receiving messages
             client = new UdpClient();
@@ -51,7 +51,7 @@ namespace BoneTCP
             SERVER_ENDPOINT = new IPEndPoint(IPAddress.Parse(SERVER_IP), PORT);
 
             // Create a new sliding window for the client
-            slidingWindow = new SlidingWindow(64, client, SERVER_ENDPOINT, enableLogging);
+            slidingWindow = new SlidingWindow(client, SERVER_ENDPOINT, maxByteSize , enableLogging);
 
             // Set the message received event handler
             slidingWindow.OnMessageReceived += MessageReceivedCall;
@@ -69,7 +69,7 @@ namespace BoneTCP
             Message msg = new Message(message);
 
             // Send the message
-            slidingWindow.Send(msg);
+            slidingWindow.AddMessage(msg);
 
             new Thread(() =>
             {
