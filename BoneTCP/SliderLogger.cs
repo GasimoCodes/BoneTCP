@@ -17,14 +17,15 @@ namespace BoneTCP
     {
         static Dictionary<string, ConsoleColor> assign = new Dictionary<string, ConsoleColor>();
         private static readonly object assignLock = new object();
+        public static bool disableColors = true;
 
-        public static void Log(string message, string from = "", string to = "", int? msgID = null)
+        public static void Log(string message, string from = "", string to = "", string? msgID = null)
         {
             string msgIDCont = "";
 
             if (msgID != null)
             {
-                msgIDCont = "[" + msgID + "]";
+                msgIDCont = "[" + msgID + "]\t";
             }
 
             Console.WriteLine($"[{checkRegisterAssoc(from)} -> {checkRegisterAssoc(to)}] {msgIDCont} {message}");
@@ -32,14 +33,14 @@ namespace BoneTCP
 
 
 
-        public static void Log(string message, UdpClient client, string to, int? msgID = null)
+        public static void Log(string message, UdpClient client, string to, string? msgID = null)
         {
             IPEndPoint ipe = ((IPEndPoint)client.Client.LocalEndPoint);
             Log(message, ipe.Port.ToString(), to, msgID);
 
         }
 
-        public static void LogError(string message, UdpClient client, string to, int? msgID = null)
+        public static void LogError(string message, UdpClient client, string to, string? msgID = null)
         {
             IPEndPoint ipe = ((IPEndPoint)client.Client.LocalEndPoint);
             Log(message.Pastel(ConsoleColor.Red), ipe.Port.ToString(), to, msgID);
@@ -48,6 +49,9 @@ namespace BoneTCP
 
         static string checkRegisterAssoc(string term)
         {
+            if (disableColors)
+                return term;
+
             lock (assignLock)
             {
                 if (!assign.ContainsKey(term))

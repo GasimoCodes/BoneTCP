@@ -67,6 +67,7 @@ namespace BoneTCP
 
             // Start listening for incoming messages
             server.BeginReceive(new AsyncCallback(PartReceivedEvent), null);
+
             
         }
 
@@ -80,7 +81,8 @@ namespace BoneTCP
 
             // Get the client end point
             IPEndPoint endPoint = new IPEndPoint(IPAddress.Any, 0);
-            server.EndReceive(ar, ref endPoint);
+            
+            byte[] datagram = server.EndReceive(ar, ref endPoint);
 
             // Get the sliding window for the client, or create a new one if it doesn't exist
             if (!slidingWindows.TryGetValue(endPoint, out SlidingWindow slidingWindow))
@@ -88,11 +90,12 @@ namespace BoneTCP
                 slidingWindow = new SlidingWindow(server, endPoint, maxByteSize, enableLogging);
                 slidingWindow.OnMessageReceived += MessageReceivedCall;
                 slidingWindows.TryAdd(endPoint, slidingWindow);
+            
             }
 
-            slidingWindow.Receive();
+            slidingWindow.ReceiveRaw(datagram);
+
             server.BeginReceive(PartReceivedEvent, null);
-        
         }
 
 

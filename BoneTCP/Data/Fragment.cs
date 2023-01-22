@@ -46,7 +46,13 @@ namespace BoneTCP
                 case flagType.Ack:
                     return "ACK_POS:" + descriptor;
                 case flagType.Set:
-                    return "SET_POS: " + descriptor;
+                    return "NEG_POS: " + descriptor;
+                case flagType.AckSet:
+                    return "ACK_NEG_POS " + descriptor;
+                case flagType.CommitFlush:
+                    return "COM_FLUSH";
+                case flagType.AckCF:
+                    return "ACK_COM_FLUSH";
             }
 
             return "";

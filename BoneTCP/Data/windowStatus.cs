@@ -8,8 +8,11 @@ namespace BoneTCP.Data
 {
     internal enum windowStatus
     {
-        None = 0,
-        Set = 1,
-        Transmit = 2
+        None,
+        Negotiating,
+        Ready,
+        Transmit,
+        Receive,
+        CommitFlush
     }
 }

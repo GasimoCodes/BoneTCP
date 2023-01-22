@@ -144,12 +144,21 @@ namespace BoneTCP
 
         public static Message ParseMessage(Fragment[] fragments)
         {
+            if(fragments == null || fragments.Length == 0)
+            {
+                throw (new ArgumentException("Cannot parse message from empty fragment array"));
+            }
+
             List<Byte> bytes = new List<Byte>();
 
             fragments.OrderBy(x => x.descriptor);
 
             foreach (Fragment fragment in fragments)
             {
+                if (fragment == null)
+                    throw (new NullReferenceException("Attempted to parse a message object from a null fragment."));
+
+
                 bytes.AddRange(fragment.Data);
             }
 
@@ -163,4 +172,11 @@ namespace BoneTCP
 
 
     }
+
+
+    public class FragmentWorkerException : Exception
+    {
+
+    }
+
 }

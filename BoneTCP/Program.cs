@@ -20,40 +20,44 @@ namespace BoneTCP
             */
 
 
-            Server s = new Server(6900, false);
+            Server s = new Server(6900, true);
             s.Start();
 
 
-            Client c = new Client("127.0.0.1", 6900, true);
-           // Client e = new Client("127.0.0.1", 6900, true);
-            
-
-            s.onMessageReceived += (Message m, IPEndPoint p) => {
-                Console.WriteLine("--- Sevr received: " + m.Data);
-                // s.SendMessage("HJenlo", p);
+            s.onMessageReceived += (Message m, IPEndPoint p) =>
+            {
+                Console.WriteLine("--- Sevr received: " + m.Data.Substring(0, Math.Clamp(m.Data.Length, 0, 20)));
+                //s.SendMessage("HJenlo", p);
             };
 
+            Client c = new Client("127.0.0.1", 6900, true);
 
-            c.onMessageReceived += (Message m, IPEndPoint p) => {
+            // c.SendMessage("JHsads");
+
+            c.onMessageReceived += (Message m, IPEndPoint p) =>
+            {
                 Console.WriteLine("CLNT received: " + m.Data);
             };
 
-            c.SendMessage("Hello world");
 
-            /*
+            // Client e = new Client("127.0.0.1", 6900, true);
+
+            
             new Thread(() =>
             {
 
                 int i = 0;
-                while (i < 5)
+                while (i < 100)
                 {
                     i++;
-                    c.SendMessage("Client A: " + i);
+                    c.SendMessage("Client A: " + i + "\n " + GetRandomString(2048));
                 }
 
             }).Start();
-
             
+
+
+            /*
             
             new Thread(() =>
             {
@@ -68,11 +72,24 @@ namespace BoneTCP
             }).Start();
             
             */
-            
+
 
             //while (true) ;
 
 
         }
+
+        internal static string GetRandomString(int stringLength)
+        {
+            StringBuilder sb = new StringBuilder();
+            int numGuidsToConcat = (((stringLength - 1) / 32) + 1);
+            for (int i = 1; i <= numGuidsToConcat; i++)
+            {
+                sb.Append(Guid.NewGuid().ToString("N"));
+            }
+
+            return sb.ToString(0, stringLength);
+        }
+
     }
 }

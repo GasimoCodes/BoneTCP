@@ -21,7 +21,7 @@ namespace BoneTCP
         private SlidingWindow slidingWindow;
 
         IPEndPoint SERVER_ENDPOINT = null;
-
+        bool isRunningReceiveThread = false;
 
         /// <summary>
         /// Event raised when a message is succesfully received.
@@ -71,12 +71,18 @@ namespace BoneTCP
             // Send the message
             slidingWindow.AddMessage(msg);
 
-            new Thread(() =>
+            if(!isRunningReceiveThread)
             {
-                while (true)
-                    slidingWindow.Receive();
+                isRunningReceiveThread = true;
+                
+                new Thread(() =>
+                {
+                    while (true)
+                        slidingWindow.Receive();
 
-            }).Start();
+                }).Start();
+            }
+            
         }
 
 

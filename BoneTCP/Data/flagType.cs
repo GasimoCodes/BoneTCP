@@ -13,6 +13,10 @@ namespace BoneTCP.Data
     {
         Message,
         Ack,
-        Set
+        Set,
+        AckSet,
+
+        CommitFlush,
+        AckCF
     }
 }
