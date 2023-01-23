@@ -10,7 +10,7 @@ namespace BoneTCP
     /// <summary>
     /// Class representing a UDP server which uses sliding window for improved stability.
     /// </summary>
-    internal class Server
+    public class Server
     {
         // UDP client to send and receive messages
         private UdpClient server = null;

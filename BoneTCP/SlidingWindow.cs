@@ -19,7 +19,6 @@ namespace BoneTCP
     public class SlidingWindow
     {
         private const int RESEND_INTERVAL = 100;
-        private const int TIMEOUT_INTERVAL = 5000; // 5 second
 
 
         // The current position of the window
@@ -49,7 +48,7 @@ namespace BoneTCP
         private System.Timers.Timer resendTimer;
 
 
-        bool SIM_FAIL = true;
+        bool SIM_FAIL = false;
 
         Random RAND = new Random();
 
