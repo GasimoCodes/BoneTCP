@@ -15,12 +15,11 @@
             Server s = new Server(6900, false);
             s.Start();
 
-
             s.onMessageReceived += (Message m, IPEndPoint p) =>
             {
                 Console.WriteLine("--- Server received: " + m.Data.Substring(0, Math.Clamp(m.Data.Length, 0, 20)));
-                //s.SendMessage("HJenlo", p);
             };
+
 
             Client c = new Client("127.0.0.1", 6900, false, 2048);
             Client e = new Client("127.0.0.1", 6900, false, 1024);
@@ -29,37 +28,23 @@
 
             new Thread(() =>
             {
-
                 int i = 0;
                 while (i < 20)
                 {
                     i++;
                     c.SendMessage("Client A: " + i + "\n " + GetRandomString(2048 * 8));
-                    
                 }
-
             }).Start();
 
-            
-
-            
-            
             new Thread(() =>
             {
-
                 int i = 0;
                 while (i < 5)
                 {
                     i++;
                     e.SendMessage("Client B: " + i);
                 }
-
             }).Start();
-            
-            
-
-
-            //while (true) ;
 
 
         }

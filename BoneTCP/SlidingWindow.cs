@@ -287,10 +287,6 @@ namespace BoneTCP
 
 
 
-
-
-
-
         /// <summary>
         /// Method to resend unacknowledged messages
         /// </summary>
@@ -336,14 +332,6 @@ namespace BoneTCP
                 ResetResendTimer();
             }
         }
-
-
-
-
-
-
-
-
 
 
 

@@ -134,7 +134,7 @@ namespace BoneTCP
             // Get the sliding window for the client, or create a new one if it doesn't exist
             if (!slidingWindows.TryGetValue(target, out SlidingWindow slidingWindow))
             {
-                throw (new Exception("Target client connection does not exist."));
+                throw (new KeyNotFoundException("Target client connection does not exist."));
             }
 
             // Create a new message
