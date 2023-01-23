@@ -23,10 +23,10 @@ namespace BoneTCP
 
 
         // The current position of the window
-        private int windowPos;
+        private int windowIndex;
         private int windowSize;
         Fragment[] windowFragments;
-        windowStatus status = windowStatus.None;
+        windowStatus status = windowStatus.INIT;
 
         private static readonly object windowOperationLock = new object();
 
@@ -49,10 +49,11 @@ namespace BoneTCP
         private System.Timers.Timer resendTimer;
 
 
-        bool SIM_FAIL = false;
+        bool SIM_FAIL = true;
 
         Random RAND = new Random();
 
+        bool receiveThreadActive = false;
 
         // Event for the PART RECEIVED event
         public delegate void PartReceivedEventHandler(Fragment msg, IPEndPoint endPoint);
@@ -74,11 +75,11 @@ namespace BoneTCP
         /// <param name="endPoint">Target to communicate with</param>
         /// <param name="maxMessageSizeBytes">Max size of 1 transmitted packet. Window size is calculated for this limit dynamically.</param>
         /// <param name="enableLogging">Enables extensice logging to console</param>
-        public SlidingWindow(UdpClient client, IPEndPoint endPoint, int maxMessageSizeBytes = 2048, bool enableLogging = true, int windowSize = 16)
+        public SlidingWindow(UdpClient client, IPEndPoint endPoint, int maxMessageSizeBytes = 2048, bool enableLogging = true, int windowSize = 8)
         {
             // Set the window size and UDP client, and initialize the other variables
             windowFragments = new Fragment[0];
-            this.windowPos = 0;
+            this.windowIndex = 0;
             this.windowSize = windowSize;
             this.client = client;
             this.endPoint = endPoint;
@@ -100,16 +101,14 @@ namespace BoneTCP
 
 
 
-
         /// <summary>
         /// Schedules an message to be sent once the window is available
         /// </summary>
         /// <param name="msg">Message contents</param>
         public void AddMessage(Message msg)
         {
-
             // Window is not ready to take messages
-            if (status != windowStatus.None)
+            if (status != windowStatus.INIT)
             {
                 lock (messageQueueLock)
                 {
@@ -126,7 +125,6 @@ namespace BoneTCP
 
                 SendNextMessage();
             }
-
         }
 
 
@@ -136,15 +134,11 @@ namespace BoneTCP
         private void SendNextMessage()
         {
             // Check if the queue is not empty and the window is not full
-            if (messageQueue.Count > 0 && status == windowStatus.None && windowFragments.Length == 0)
+            if (messageQueue.Count > 0 && status == windowStatus.INIT && windowFragments.Length == 0)
             {
 
                 Message curMes;
-
-                lock (messageQueueLock)
-                {
-                    curMes = messageQueue.Dequeue();
-                }
+                curMes = messageQueue.Dequeue();
 
                 windowFragments = FragmentWorker.SerializeMessage(curMes, maxBytesPerMessage);
 
@@ -153,22 +147,16 @@ namespace BoneTCP
 
                 NegotiateWindowSize(windowFragments.Length).Wait();
 
+
+                // Begin timer
                 if (resendTimer.Enabled)
                 {
                     ResetResendTimer();
                 }
-
-
-                // Begin transmit!
-                RetransmitWindowFrame(null, null);
-
-            }
-            else
-            {
-                if (enableLogging)
-                    SliderLogger.Log("All messages sent.");
             }
         }
+
+
 
 
         /// <summary>
@@ -178,28 +166,37 @@ namespace BoneTCP
         /// <returns></returns>
         private async Task NegotiateWindowSize(int size)
         {
-            lock (windowOperationLock)
-            {
-                status = windowStatus.Negotiating;
-            }
 
-            Fragment negFrag = new Fragment();
-            negFrag.flag = flagType.Set;
-            negFrag.descriptor = (uint)windowFragments.Length;
-            sendFragment(negFrag);
+            status = windowStatus.WAIT_NEG;
+            Fragment negFrag = new Fragment((uint)windowFragments.Length, flagType.Set);
 
-
-            while (status != windowStatus.Ready)
+            while (status == windowStatus.WAIT_NEG)
             {
                 sendFragment(negFrag);
                 Thread.Sleep(RESEND_INTERVAL);
-                Receive();
+                beginReceiveThread();
             }
 
             if (enableLogging)
-                SliderLogger.Log($"Negotiated window to {windowFragments.Length}".Pastel(ConsoleColor.Yellow), client, endPoint.Port.ToString(), status.ToString());
+                SliderLogger.Log($"Finished negotiating with REMOTE on {windowFragments.Length}".Pastel(ConsoleColor.Yellow), client, endPoint.Port.ToString(), status.ToString());
 
             return;
+        }
+
+        private void beginReceiveThread()
+        {
+            if(!receiveThreadActive)
+            {
+                receiveThreadActive = true;
+                new Thread(() =>
+                {
+                    while (receiveThreadActive)
+                    {
+                        Thread.Sleep(RESEND_INTERVAL);
+                        Receive();
+                    }
+                }).Start();
+            }
         }
 
 
@@ -208,35 +205,28 @@ namespace BoneTCP
         /// </summary>
         /// <param name="size"></param>
         /// <returns></returns>
-        private async Task CommitAndFlushRemote()
+        private async Task CommitFlushRemoteWindow()
         {
-            lock (windowOperationLock)
-            {
-                status = windowStatus.CommitFlush;
-            }
 
-            Fragment negFrag = new Fragment();
-            negFrag.flag = flagType.CommitFlush;
-            negFrag.descriptor = (uint)windowFragments.Length;
-            sendFragment(negFrag);
+            status = windowStatus.WAIT_FLUSH;
+            Fragment negFrag = new Fragment((uint)windowFragments.Length, flagType.CommitFlush);
 
-
-            while (status == windowStatus.CommitFlush)
+            while (status == windowStatus.WAIT_FLUSH)
             {
                 sendFragment(negFrag);
                 Thread.Sleep(RESEND_INTERVAL);
-                Console.WriteLine("Awaiting flush");
-                Receive();
+                //beginReceiveThread();
             }
 
-
-
             if (enableLogging)
-                SliderLogger.Log($"Commited and flushed window to {windowFragments.Length}".Pastel(ConsoleColor.Yellow), client, endPoint.Port.ToString(), status.ToString());
+                SliderLogger.Log($"Finished commit and flush on REMOTE".Pastel(ConsoleColor.Yellow), client, endPoint.Port.ToString(), status.ToString());
 
             SendNextMessage();
+
             return;
         }
+
+
 
 
         #region sendMethods
@@ -261,10 +251,10 @@ namespace BoneTCP
             // Send the message over UDP
             client.Send(fragBytes, fragBytes.Length, endPoint);
 
-
             // Return a success message
             if (enableLogging)
                 SliderLogger.Log("SND: ".Pastel(ConsoleColor.Yellow) + frg.ToString().Pastel(ConsoleColor.Gray), client, endPoint.Port.ToString(), status.ToString());
+
 
             return;
         }
@@ -293,50 +283,69 @@ namespace BoneTCP
         }
 
 
+
+
+        #endregion
+
+
+
+
+
+
+
         /// <summary>
-        /// Confirm this fragment and move window if necessary
+        /// Method to resend unacknowledged messages
         /// </summary>
-        private void addFragmentToFinishedSent(uint pos)
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void RetransmitWindowFrame(object sender, ElapsedEventArgs e)
         {
-            if (status != windowStatus.Transmit || windowFragments.Length == 0)
+            if (status != windowStatus.TRANSMIT || windowFragments.Length == 0 || (windowIndex >= windowFragments.Length))
             {
+                ResetResendTimer();
                 return;
             }
 
-            if (pos == (windowPos + 1))
+            Console.WriteLine("\n\n");
+
+            // Resend all frame messages
+            for (int i = 0; i < windowSize; i++)
             {
-                windowPos = (int)pos;
+                if (i + windowIndex >= windowFragments.Length)
+                {
+                    break;
+                }
+
+                sendFragment(windowFragments[windowIndex + i]);
             }
 
-            if (windowPos == windowFragments.Length && status == windowStatus.Transmit)
-            {
-                // END
-                CommitAndFlushRemote().Wait();
-            }
+            // Restart the timer
+            ResetResendTimer();
         }
+
 
         /// <summary>
-        /// Confirm this fragment and move window if necessary
+        /// Resets state of slidingWindow
         /// </summary>
-        private void addFragmentToFinishedReceive(Fragment frag)
+        private void resetWindow()
         {
-
-            windowFragments[frag.descriptor] = frag;
-
             lock (windowOperationLock)
             {
-                if ((frag.descriptor == windowPos) && (windowPos != windowFragments.Length))
-                {
-                    windowPos++;
-                }
+                windowIndex = 0;
+                windowFragments = new Fragment[0];
+                status = windowStatus.INIT;
+                ResetResendTimer();
             }
-
-            // Send an ACK message for the received message
-            SendAck((uint)windowPos);
-
         }
 
-        #endregion
+
+
+
+
+
+
+
+
 
 
         /// <summary>
@@ -350,10 +359,7 @@ namespace BoneTCP
 
             if (fragBytes.Length != 0)
                 ReceiveRaw(fragBytes);
-
         }
-
-
 
 
         /// <summary>
@@ -365,7 +371,6 @@ namespace BoneTCP
             // Deserialize the message bytes to a Message object
             Fragment frag = FragmentWorker.ParseFragment(fragBytes);
 
-
             if (frag == null)
             {
                 if (enableLogging)
@@ -373,211 +378,234 @@ namespace BoneTCP
                 return;
             }
 
-            /*
-            if (endPoint.Port == 6900)
-                Console.WriteLine("ReceivedStuff from " + endPoint.Port);
-            */
+            packetHandler(frag);
 
+        }
+
+        /// <summary>
+        /// Handles packet logic tree
+        /// </summary>
+        /// <param name="frag"></param>
+        private void packetHandler(Fragment frag)
+        {
+
+            if (enableLogging)
+                SliderLogger.Log("REC: ".Pastel(ConsoleColor.Green) + frag.ToString().Pastel(ConsoleColor.Gray), client, endPoint.Port.ToString(), status.ToString());
 
 
             switch (frag.flag)
             {
-                case flagType.Ack:
-                    {
-                        // If invalid status
-                        if (status != windowStatus.Transmit)
-                        {
-                            if (enableLogging)
-                                SliderLogger.LogError($"DRP: NO MESSAGE EXPECTED {frag.ToString()}".Pastel(ConsoleColor.Red), client, endPoint.Port.ToString(), status.ToString());
-
-                            return;
-                        }
-
-                        if (enableLogging)
-                            SliderLogger.Log($"RCV: {frag.ToString().Pastel(ConsoleColor.Blue)}", client, endPoint.Port.ToString(), status.ToString());
-
-                        addFragmentToFinishedSent(frag.descriptor);
-                        return;
-
-                    }
+                // Message received
                 case flagType.Message:
                     {
-                        // If invalid status
-                        if (status != windowStatus.Receive)
+                        if (status != windowStatus.RECEIVE)
                         {
-                            if (enableLogging)
-                                SliderLogger.LogError($"DRP: NO MESSAGE EXPECTED {frag.ToString()}".Pastel(ConsoleColor.Red), client, endPoint.Port.ToString(), status.ToString());
-
+                            dropForReason(frag, "Unexpected");
                             return;
                         }
 
-                        // Notify console
-                        if (enableLogging)
-                            SliderLogger.Log("RCV: " + frag.ToString().Pastel(ConsoleColor.Gray), client, endPoint.Port.ToString(), status.ToString());
-
-
-                        addFragmentToFinishedReceive(frag);
-
-                        // Raise the FragmentReceived event
-                        OnPartReceived?.Invoke(frag, endPoint);
-
-                        return;/* "Received message with data: " + msg.Data;*/
+                        registerMessageReceived(frag);
+                        SendAck((uint)windowIndex, flagType.Ack);
+                        break;
                     }
+
+                // Negotiation SET
                 case flagType.Set:
                     {
-                        // If window already set
-
-                        if (windowFragments.Length != 0 || status != windowStatus.None)
+                        if (status != windowStatus.INIT)
                         {
-                            if (enableLogging)
-                                SliderLogger.Log("DRP: Invalid SET ".Pastel(ConsoleColor.Red) + frag.ToString().Pastel(ConsoleColor.Gray), client, endPoint.Port.ToString(), status.ToString());
-
-                            SendAck((uint)this.windowFragments.Length);
+                            dropForReason(frag, "Unexpected");
+                            SendAck((uint)windowFragments.Length, flagType.AckSet);
                             return;
                         }
 
-                        resetWindow();
-
-
-                        if (enableLogging)
-                            SliderLogger.Log($"RCV: {frag.ToString().Pastel(ConsoleColor.Blue)}", client, endPoint.Port.ToString(), status.ToString());
-
-                        status = windowStatus.Ready;
-
-                        // set
-                        windowFragments = new Fragment[frag.descriptor];
-
-
-                        if (enableLogging)
-                            SliderLogger.Log($"Negotiated window to {windowFragments.Length}".Pastel(ConsoleColor.Yellow), client, endPoint.Port.ToString(), status.ToString());
-
-                        SendAck(frag.descriptor, flagType.AckSet);
-
-                        status = windowStatus.Receive;
-                        return;
-
+                        register_SetWindowLegth(frag);
+                        SendAck((uint)windowFragments.Length, flagType.AckSet);
+                        break;
                     }
-                case flagType.AckSet:
-                    {
-                        // This IS a negotiation
-                        if (status == windowStatus.Negotiating)
-                        {
-                            if (frag.descriptor == windowFragments.Length)
-                            {
-                                // Negotiation done
-                                lock (windowOperationLock)
-                                {
-                                    status = windowStatus.Ready;
-                                }
 
-                                if (enableLogging)
-                                    SliderLogger.Log($"RCV: {frag.ToString().Pastel(ConsoleColor.Blue)}", client, endPoint.Port.ToString(), status.ToString());
-                            }
-                            else
-                            {
-
-                                if (enableLogging)
-                                    SliderLogger.LogError($"DRP: INCORRECT NEGOTIATION VALUE {frag.descriptor} EXPECTED {windowFragments.Length}".Pastel(ConsoleColor.Red), client, endPoint.Port.ToString(), status.ToString());
-
-                            }
-                        }
-
-                        return;
-                    }
-                // COMMITS AND RESETS THIS ENDPOINT
+                // Commit existing fragments and clean window for next negotiation
                 case flagType.CommitFlush:
                     {
-                        if (status != windowStatus.Receive)
+                        if (status != windowStatus.RECEIVE)
                         {
-                            if (enableLogging)
-                                SliderLogger.Log("DRP: Invalid COMMIT FLUSH ".Pastel(ConsoleColor.Red) + frag.ToString().Pastel(ConsoleColor.Gray), client, endPoint.Port.ToString(), status.ToString());
-
-                            SendAck(0, flagType.AckCF);
+                            dropForReason(frag, "Unexpected");
+                            SendAck((uint)windowIndex, flagType.AckCF);
                             return;
-
                         }
 
-                        // Check for raising events
-                        checkReceivedListForEvent();
-                        resetWindow();
-
-
-                        SendAck(0, flagType.AckCF);
-
-
-                        if (enableLogging)
-                            SliderLogger.Log($"Remote called flush on this instance.  {frag.ToString()}".Pastel(ConsoleColor.Yellow), client, endPoint.Port.ToString(), status.ToString());
-
-                        return;
+                        register_CommitFlush(frag);
+                        SendAck((uint)windowIndex, flagType.AckCF);
+                        break;
                     }
 
+                // Acknowledgment for message received
+                case flagType.Ack:
+                    {
+                        if (status != windowStatus.TRANSMIT)
+                        {
+                            dropForReason(frag, "Unexpected");
+                            return;
+                        }
 
+                        register_ACK_Receive(frag);
+                        break;
+                    }
+                // Acknowledgment for SET on remote
+                case flagType.AckSet:
+                    {
+                        if (status != windowStatus.WAIT_NEG)
+                        {
+                            dropForReason(frag, "Unexpected");
+                            return;
+                        }
+
+                        register_ACK_Set(frag);
+                        break;
+                    }
+                // Acknowledgment for FLUSH on remote
                 case flagType.AckCF:
                     {
+                        if (status != windowStatus.WAIT_FLUSH)
+                        {
+                            dropForReason(frag, "Unexpected");
+                            return;
+                        }
 
-                        resetWindow();
-                    
-                        if (enableLogging)
-                            SliderLogger.Log($"Remote flushed. Sending new message. {frag.ToString()}".Pastel(ConsoleColor.Yellow), client, endPoint.Port.ToString(), status.ToString());
-
-                        return;
+                        register_ACK_Commit(frag);
+                        break;
                     }
-
-
             }
         }
 
 
 
         /// <summary>
-        /// Method to resend unacknowledged messages
+        /// Called when you received a message, if its on index it raises the windowPosition
         /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void RetransmitWindowFrame(object sender, ElapsedEventArgs e)
+        /// <param name="frag"></param>
+        private void registerMessageReceived(Fragment frag)
         {
-
-            if (status == windowStatus.Ready)
+            
+            // Check if we arent already full
+            if (windowIndex > (windowFragments.Length - 1))
             {
-                status = windowStatus.Transmit;
-            }
-
-
-            if (status != windowStatus.Transmit || windowFragments.Length == 0)
-            {
-                ResetResendTimer();
                 return;
             }
 
+            Console.WriteLine("RECEIVER: POS " + windowIndex + "/" + (windowFragments.Length - 1) + " FRAG: " + frag.descriptor);
 
-            // Resend all frame messages
-            for (int i = 0; i < windowSize; i++)
+            // Insert fragment
+            windowFragments[frag.descriptor] = frag;
+
+            // Raise position
+            if (frag.descriptor == (windowIndex))
             {
-                if (i + windowPos >= windowFragments.Length)
-                {
-                    // END OF ARRAY
-                    break;
-                }
-
-                sendFragment(windowFragments[windowPos + i]);
-
+                windowIndex++;
             }
 
-
-            // Restart the timer
-            ResetResendTimer();
         }
 
-        private void resetWindow()
+
+        /// <summary>
+        /// Sets local windowLength
+        /// </summary>
+        /// <param name="frag"></param>
+        private void register_SetWindowLegth(Fragment frag)
         {
-            lock (windowOperationLock)
-            {
-                windowPos = 0;
-                windowFragments = new Fragment[0];
-                status = windowStatus.None;
-                ResetResendTimer();
-            }
+            this.windowFragments = new Fragment[frag.descriptor];
+            windowIndex = 0;
+
+            if (enableLogging)
+                SliderLogger.Log($"Receiver size now at {windowFragments.Length}".Pastel(ConsoleColor.Yellow), client, endPoint.Port.ToString(), status.ToString());
+
+            status = windowStatus.RECEIVE;
+
         }
+
+        /// <summary>
+        /// Clears local window and commits it
+        /// </summary>
+        /// <param name="frag"></param>
+        private void register_CommitFlush(Fragment frag)
+        {
+
+            if (enableLogging)
+                SliderLogger.Log($"Receiver Commiting... {windowFragments.Length}".Pastel(ConsoleColor.Yellow), client, endPoint.Port.ToString(), status.ToString());
+
+            checkReceivedListForEvent();
+
+            if (enableLogging)
+                SliderLogger.Log($"Receiver Reset... {windowFragments.Length}".Pastel(ConsoleColor.Yellow), client, endPoint.Port.ToString(), status.ToString());
+           
+            resetWindow();
+        
+        }
+
+
+
+        /// <summary>
+        /// Remote successfuly configured its windowSize
+        /// </summary>
+        /// <param name="frag"></param>
+        private void register_ACK_Set(Fragment frag)
+        {
+            status = windowStatus.TRANSMIT;
+        }
+
+        /// <summary>
+        /// Remote commited all messages and cleared its contents
+        /// </summary>
+        /// <param name="frag"></param>
+        private void register_ACK_Commit(Fragment frag)
+        {
+            resetWindow();
+        }
+
+
+        /// <summary>
+        /// Called when you receive an ACK for a message you have sent
+        /// </summary>
+        /// <param name="frag"></param>
+        private void register_ACK_Receive(Fragment frag)
+        {
+            if(windowIndex >= windowFragments.Length)
+            {
+                return;
+            }
+
+            if (frag.descriptor >= (windowIndex + 1))
+            {
+                windowIndex++;
+            }
+
+            Console.WriteLine("SENDER: POS " + windowIndex + "/" + (windowFragments.Length - 1) + " FRAG: " + frag.descriptor);
+
+            if (windowIndex >= windowFragments.Length)
+            {
+                // All messages received on the other side
+                CommitFlushRemoteWindow();
+                return;
+            }
+
+        }
+
+
+
+
+        /// <summary>
+        /// Logs a fancy reason for which a packet was dropped
+        /// </summary>
+        /// <param name="frag"></param>
+        /// <param name="reason"></param>
+        private void dropForReason(Fragment frag, string reason = "")
+        {
+            if (enableLogging)
+                SliderLogger.LogError($"DRP: {reason} ".Pastel(ConsoleColor.Red) + $"{frag.ToString()}".Pastel(ConsoleColor.Gray), client, endPoint.Port.ToString(), status.ToString());
+        }
+
+
+
 
 
         #region events

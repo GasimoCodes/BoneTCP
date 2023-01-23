@@ -42,17 +42,17 @@ namespace BoneTCP
             switch(flag)
             {
                 case flagType.Message:
-                    return $"POS:{descriptor}, DATA: ({Data})";
+                    return $"POS:{descriptor}, DATA: ({Data.Length})";
                 case flagType.Ack:
-                    return "ACK_POS:" + descriptor;
+                    return "ACK\tPOS:" + descriptor;
                 case flagType.Set:
                     return "NEG_POS: " + descriptor;
                 case flagType.AckSet:
-                    return "ACK_NEG_POS " + descriptor;
+                    return "ACK\tNEG_POS " + descriptor;
                 case flagType.CommitFlush:
                     return "COM_FLUSH";
                 case flagType.AckCF:
-                    return "ACK_COM_FLUSH";
+                    return "ACK\tCOM_FLUSH";
             }
 
             return "";

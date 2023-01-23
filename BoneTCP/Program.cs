@@ -32,7 +32,6 @@ namespace BoneTCP
 
             Client c = new Client("127.0.0.1", 6900, true);
 
-            // c.SendMessage("JHsads");
 
             c.onMessageReceived += (Message m, IPEndPoint p) =>
             {
@@ -47,10 +46,10 @@ namespace BoneTCP
             {
 
                 int i = 0;
-                while (i < 100)
+                while (i < 2)
                 {
                     i++;
-                    c.SendMessage("Client A: " + i + "\n " + GetRandomString(2048));
+                    c.SendMessage("Client A: " + i + "\n " + GetRandomString(2048*8));
                 }
 
             }).Start();

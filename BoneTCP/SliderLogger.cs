@@ -28,7 +28,7 @@ namespace BoneTCP
                 msgIDCont = "[" + msgID + "]\t";
             }
 
-            Console.WriteLine($"[{checkRegisterAssoc(from)} -> {checkRegisterAssoc(to)}] {msgIDCont} {message}");
+            Console.WriteLine($"[{checkRegisterAssoc(from)}] {msgIDCont} {message}");
         }
 
 

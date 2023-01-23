@@ -69,7 +69,7 @@ namespace BoneTCP
             Message msg = new Message(message);
 
             // Send the message
-            slidingWindow.AddMessage(msg);
+            slidingWindow.AddMessage(msg);            
 
             if(!isRunningReceiveThread)
             {
@@ -77,12 +77,14 @@ namespace BoneTCP
                 
                 new Thread(() =>
                 {
-                    while (true)
-                        slidingWindow.Receive();
+                    while(isRunningReceiveThread) { 
+                    slidingWindow.Receive();
+                    Thread.Sleep(10);
+                    }
 
                 }).Start();
             }
-            
+
         }
 
 

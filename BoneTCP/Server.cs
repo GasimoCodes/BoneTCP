@@ -15,6 +15,8 @@ namespace BoneTCP
         // UDP client to send and receive messages
         private UdpClient server = null;
 
+        bool isWorking = true;
+
         // Dictionary to store the sliding windows for each client
         private ConcurrentDictionary<IPEndPoint, SlidingWindow> slidingWindows;
 
@@ -68,7 +70,16 @@ namespace BoneTCP
             // Start listening for incoming messages
             server.BeginReceive(new AsyncCallback(PartReceivedEvent), null);
 
+            // Keep alive
+                new Thread(() =>
+                {
+                    while (isWorking)
+                    {
+                        Thread.Sleep(1000);
+                    }
+                }).Start();
             
+
         }
 
         
