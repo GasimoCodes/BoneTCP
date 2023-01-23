@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using BoneTCP.Data;
 using BoneTCP.Logging;
 using static BoneTCP.SlidingWindow;
 

@@ -92,7 +92,12 @@ namespace BoneTCP
 
 
 
-
+        /// <summary>
+        /// Splices the message into Fragments
+        /// </summary>
+        /// <param name="msg"></param>
+        /// <param name="fragmentBytesize"></param>
+        /// <returns></returns>
         static public Fragment[] SerializeMessage(Message msg, int fragmentBytesize)
         {
 
@@ -142,6 +147,11 @@ namespace BoneTCP
             return fragments;
         }
 
+        /// <summary>
+        /// Parses fragments of variable size into a message object
+        /// </summary>
+        /// <param name="fragments"></param>
+        /// <returns></returns>
         public static Message ParseMessage(Fragment[] fragments)
         {
             if(fragments == null || fragments.Length == 0)

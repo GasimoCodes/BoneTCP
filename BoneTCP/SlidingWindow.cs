@@ -47,7 +47,6 @@ namespace BoneTCP
         // The timer for resending unacknowledged messages
         private System.Timers.Timer resendTimer;
 
-
         bool SIM_FAIL = false;
 
         Random RAND = new Random();

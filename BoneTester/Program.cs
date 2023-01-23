@@ -2,6 +2,7 @@
 {
 
     using BoneTCP;
+    using BoneTCP.Data;
     using System.Net;
     using System.Text;
 
@@ -22,7 +23,7 @@
             };
 
             Client c = new Client("127.0.0.1", 6900, false, 2048);
-            Client e = new Client("127.0.0.1", 6900, false, 2048);
+            Client e = new Client("127.0.0.1", 6900, false, 1024);
 
             e.SendMessage("Hello world!!");
 

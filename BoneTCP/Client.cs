@@ -1,4 +1,5 @@
-﻿using System;
+﻿using BoneTCP.Data;
+using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
