@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace BoneTCP.Data
 {
+    /// <summary>
+    /// Represents status of sliding window
+    /// </summary>
     internal enum windowStatus
     {
         INIT, // BEGINNING STATE

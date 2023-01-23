@@ -1,0 +1,113 @@
+\hypertarget{class_bone_t_c_p_1_1_sliding_window}{}\doxysection{Bone\+TCP.\+Sliding\+Window Class Reference}
+\label{class_bone_t_c_p_1_1_sliding_window}\index{BoneTCP.SlidingWindow@{BoneTCP.SlidingWindow}}
+
+
+Sliding\+Window implementation using UDP Connection.  
+
+
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{class_bone_t_c_p_1_1_sliding_window_a6c58d686867040816b8e0e48b02053d6}\label{class_bone_t_c_p_1_1_sliding_window_a6c58d686867040816b8e0e48b02053d6}} 
+delegate void {\bfseries Part\+Received\+Event\+Handler} (\mbox{\hyperlink{class_bone_t_c_p_1_1_data_1_1_fragment}{Fragment}} msg, IPEnd\+Point end\+Point)
+\item 
+\mbox{\Hypertarget{class_bone_t_c_p_1_1_sliding_window_a08cc17e3121fc4e35edb9fe8f7317ad7}\label{class_bone_t_c_p_1_1_sliding_window_a08cc17e3121fc4e35edb9fe8f7317ad7}} 
+delegate void {\bfseries Message\+Received\+Event\+Handler} (\mbox{\hyperlink{class_bone_t_c_p_1_1_data_1_1_message}{Message}} msg, IPEnd\+Point end\+Point)
+\item 
+\mbox{\hyperlink{class_bone_t_c_p_1_1_sliding_window_a3b84f69f489f6afa955d59f069e9c4ca}{Sliding\+Window}} (Udp\+Client client, IPEnd\+Point end\+Point, int max\+Message\+Size\+Bytes=2048, bool enable\+Logging=true, int window\+Size=8)
+\begin{DoxyCompactList}\small\item\em Creates an sliding\+Window instance. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_bone_t_c_p_1_1_sliding_window_ac91ee4a3a5e4164f1d748c834314ff8b}{Add\+Message}} (\mbox{\hyperlink{class_bone_t_c_p_1_1_data_1_1_message}{Message}} msg)
+\begin{DoxyCompactList}\small\item\em Schedules an message to be sent once the window is available. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_bone_t_c_p_1_1_sliding_window_a75ff0c6a6ca2dd573097ee402547a9f7}{Receive}} (IAsync\+Result ia=null)
+\begin{DoxyCompactList}\small\item\em Method to read incoming response. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_bone_t_c_p_1_1_sliding_window_a36a0bceb1ad8d20b8f54dd13ea71170e}{Receive\+Raw}} (byte\mbox{[}$\,$\mbox{]} frag\+Bytes)
+\begin{DoxyCompactList}\small\item\em Commit bytes directly into the window. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Events}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{class_bone_t_c_p_1_1_sliding_window_a57f4b0daf7db7f9367b151498e2b63e8}\label{class_bone_t_c_p_1_1_sliding_window_a57f4b0daf7db7f9367b151498e2b63e8}} 
+Part\+Received\+Event\+Handler {\bfseries On\+Part\+Received}
+\item 
+\mbox{\Hypertarget{class_bone_t_c_p_1_1_sliding_window_a4b87bf730f701d85fcecbd3238f89395}\label{class_bone_t_c_p_1_1_sliding_window_a4b87bf730f701d85fcecbd3238f89395}} 
+Message\+Received\+Event\+Handler {\bfseries On\+Message\+Received}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Sliding\+Window implementation using UDP Connection. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{class_bone_t_c_p_1_1_sliding_window_a3b84f69f489f6afa955d59f069e9c4ca}\label{class_bone_t_c_p_1_1_sliding_window_a3b84f69f489f6afa955d59f069e9c4ca}} 
+\index{BoneTCP.SlidingWindow@{BoneTCP.SlidingWindow}!SlidingWindow@{SlidingWindow}}
+\index{SlidingWindow@{SlidingWindow}!BoneTCP.SlidingWindow@{BoneTCP.SlidingWindow}}
+\doxysubsubsection{\texorpdfstring{SlidingWindow()}{SlidingWindow()}}
+{\footnotesize\ttfamily Bone\+TCP.\+Sliding\+Window.\+Sliding\+Window (\begin{DoxyParamCaption}\item[{Udp\+Client}]{client,  }\item[{IPEnd\+Point}]{end\+Point,  }\item[{int}]{max\+Message\+Size\+Bytes = {\ttfamily 2048},  }\item[{bool}]{enable\+Logging = {\ttfamily true},  }\item[{int}]{window\+Size = {\ttfamily 8} }\end{DoxyParamCaption})}
+
+
+
+Creates an sliding\+Window instance. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em client} & An UDP Client instance used for network communication\\
+\hline
+{\em end\+Point} & Target to communicate with\\
+\hline
+{\em max\+Message\+Size\+Bytes} & Max size of 1 transmitted packet. Window size is calculated for this limit dynamically.\\
+\hline
+{\em enable\+Logging} & Enables extensice logging to console\\
+\hline
+\end{DoxyParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{class_bone_t_c_p_1_1_sliding_window_ac91ee4a3a5e4164f1d748c834314ff8b}\label{class_bone_t_c_p_1_1_sliding_window_ac91ee4a3a5e4164f1d748c834314ff8b}} 
+\index{BoneTCP.SlidingWindow@{BoneTCP.SlidingWindow}!AddMessage@{AddMessage}}
+\index{AddMessage@{AddMessage}!BoneTCP.SlidingWindow@{BoneTCP.SlidingWindow}}
+\doxysubsubsection{\texorpdfstring{AddMessage()}{AddMessage()}}
+{\footnotesize\ttfamily void Bone\+TCP.\+Sliding\+Window.\+Add\+Message (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{class_bone_t_c_p_1_1_data_1_1_message}{Message}}}]{msg }\end{DoxyParamCaption})}
+
+
+
+Schedules an message to be sent once the window is available. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em msg} & Message contents\\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{class_bone_t_c_p_1_1_sliding_window_a75ff0c6a6ca2dd573097ee402547a9f7}\label{class_bone_t_c_p_1_1_sliding_window_a75ff0c6a6ca2dd573097ee402547a9f7}} 
+\index{BoneTCP.SlidingWindow@{BoneTCP.SlidingWindow}!Receive@{Receive}}
+\index{Receive@{Receive}!BoneTCP.SlidingWindow@{BoneTCP.SlidingWindow}}
+\doxysubsubsection{\texorpdfstring{Receive()}{Receive()}}
+{\footnotesize\ttfamily void Bone\+TCP.\+Sliding\+Window.\+Receive (\begin{DoxyParamCaption}\item[{IAsync\+Result}]{ia = {\ttfamily null} }\end{DoxyParamCaption})}
+
+
+
+Method to read incoming response. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em ia} & IAsync\+Result generated by UDP Client\\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{class_bone_t_c_p_1_1_sliding_window_a36a0bceb1ad8d20b8f54dd13ea71170e}\label{class_bone_t_c_p_1_1_sliding_window_a36a0bceb1ad8d20b8f54dd13ea71170e}} 
+\index{BoneTCP.SlidingWindow@{BoneTCP.SlidingWindow}!ReceiveRaw@{ReceiveRaw}}
+\index{ReceiveRaw@{ReceiveRaw}!BoneTCP.SlidingWindow@{BoneTCP.SlidingWindow}}
+\doxysubsubsection{\texorpdfstring{ReceiveRaw()}{ReceiveRaw()}}
+{\footnotesize\ttfamily void Bone\+TCP.\+Sliding\+Window.\+Receive\+Raw (\begin{DoxyParamCaption}\item[{byte\mbox{[}$\,$\mbox{]}}]{frag\+Bytes }\end{DoxyParamCaption})}
+
+
+
+Commit bytes directly into the window. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em frag\+Bytes} & \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+Bone\+TCP/Sliding\+Window.\+cs\end{DoxyCompactItemize}

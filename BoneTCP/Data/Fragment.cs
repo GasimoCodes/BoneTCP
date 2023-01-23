@@ -5,15 +5,20 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BoneTCP
+namespace BoneTCP.Data
 {
+    /// <summary>
+    /// Represents part of a message. Includes flags and descriptor
+    /// </summary>
     public class Fragment
     {
-
+        /// <summary>
+        /// Fragment flag
+        /// </summary>
         public flagType flag = flagType.Message;
 
         /// <summary>
-        /// Position of sliding window
+        /// Universal descriptor, may be position of sliding window
         /// </summary>
         public uint descriptor = 0;
 

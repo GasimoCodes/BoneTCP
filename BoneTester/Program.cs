@@ -10,55 +10,38 @@
 
         static void Main(string[] args)
         {
-            /*
-            Message a = new Message("");
-            a.SeqID = 69;
 
-            Fragment[] frags = FragmentWorker.SerializeMessage(a, 1024);
-
-
-            Message m = FragmentWorker.ParseMessage(frags);
-            Console.WriteLine(m.Data + " / " + m.SeqID);
-            */
-
-
-            Server s = new Server(6900, true);
+            Server s = new Server(6900, false);
             s.Start();
 
 
             s.onMessageReceived += (Message m, IPEndPoint p) =>
             {
-                Console.WriteLine("--- Sevr received: " + m.Data.Substring(0, Math.Clamp(m.Data.Length, 0, 20)));
+                Console.WriteLine("--- Server received: " + m.Data.Substring(0, Math.Clamp(m.Data.Length, 0, 20)));
                 //s.SendMessage("HJenlo", p);
             };
 
-            Client c = new Client("127.0.0.1", 6900, true);
+            Client c = new Client("127.0.0.1", 6900, false, 2048);
+            Client e = new Client("127.0.0.1", 6900, false, 2048);
 
-
-            c.onMessageReceived += (Message m, IPEndPoint p) =>
-            {
-                Console.WriteLine("CLNT received: " + m.Data);
-            };
-
-
-            // Client e = new Client("127.0.0.1", 6900, true);
-
+            e.SendMessage("Hello world!!");
 
             new Thread(() =>
             {
 
                 int i = 0;
-                while (i < 2)
+                while (i < 20)
                 {
                     i++;
                     c.SendMessage("Client A: " + i + "\n " + GetRandomString(2048 * 8));
+                    
                 }
 
             }).Start();
 
+            
 
-
-            /*
+            
             
             new Thread(() =>
             {
@@ -72,7 +55,7 @@
 
             }).Start();
             
-            */
+            
 
 
             //while (true) ;

@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Pastel;
 
-namespace BoneTCP
+namespace BoneTCP.Logging
 {
     /// <summary>
     /// Logging tool used internally by SlidingWindow.cs

@@ -1,0 +1,75 @@
+\hypertarget{class_bone_t_c_p_1_1_server}{}\doxysection{Bone\+TCP.\+Server Class Reference}
+\label{class_bone_t_c_p_1_1_server}\index{BoneTCP.Server@{BoneTCP.Server}}
+
+
+Class representing a UDP server which uses sliding window for improved stability.  
+
+
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{class_bone_t_c_p_1_1_server_a9e75ace3372d275dc5f7a3c54ed96712}{Server}} (int PORT=6900, bool enable\+Logging=false, int max\+Byte\+Size=1024)
+\begin{DoxyCompactList}\small\item\em Constructor for creating a server instance. A Start() must be called to accept new connections. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{class_bone_t_c_p_1_1_server_af8ad2447b7453961179e4390c24c7735}\label{class_bone_t_c_p_1_1_server_af8ad2447b7453961179e4390c24c7735}} 
+void {\bfseries Start} ()
+\begin{DoxyCompactList}\small\item\em Start listening to incoming messages. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_bone_t_c_p_1_1_server_a24ddbe80098215deaa01d1eaceaa9199}{Send\+Message}} (string message, IPEnd\+Point target)
+\begin{DoxyCompactList}\small\item\em Sends a message to an existing client connection. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{class_bone_t_c_p_1_1_server_a892d1028d09a3feb675861a9657346b1}\label{class_bone_t_c_p_1_1_server_a892d1028d09a3feb675861a9657346b1}} 
+Message\+Received\+Event\+Handler {\bfseries on\+Message\+Received}
+\begin{DoxyCompactList}\small\item\em Event raised when a message is succesfully received. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Properties}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{class_bone_t_c_p_1_1_server_ad3b9b51620dd295a3f27bdb0a8bd9124}\label{class_bone_t_c_p_1_1_server_ad3b9b51620dd295a3f27bdb0a8bd9124}} 
+int {\bfseries Running\+Port}\hspace{0.3cm}{\ttfamily  \mbox{[}get\mbox{]}}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Class representing a UDP server which uses sliding window for improved stability. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{class_bone_t_c_p_1_1_server_a9e75ace3372d275dc5f7a3c54ed96712}\label{class_bone_t_c_p_1_1_server_a9e75ace3372d275dc5f7a3c54ed96712}} 
+\index{BoneTCP.Server@{BoneTCP.Server}!Server@{Server}}
+\index{Server@{Server}!BoneTCP.Server@{BoneTCP.Server}}
+\doxysubsubsection{\texorpdfstring{Server()}{Server()}}
+{\footnotesize\ttfamily Bone\+TCP.\+Server.\+Server (\begin{DoxyParamCaption}\item[{int}]{PORT = {\ttfamily 6900},  }\item[{bool}]{enable\+Logging = {\ttfamily false},  }\item[{int}]{max\+Byte\+Size = {\ttfamily 1024} }\end{DoxyParamCaption})}
+
+
+
+Constructor for creating a server instance. A Start() must be called to accept new connections. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em PORT} & Port on which will the server listen for new connections\\
+\hline
+{\em enable\+Logging} & Enable logging into console\\
+\hline
+\end{DoxyParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{class_bone_t_c_p_1_1_server_a24ddbe80098215deaa01d1eaceaa9199}\label{class_bone_t_c_p_1_1_server_a24ddbe80098215deaa01d1eaceaa9199}} 
+\index{BoneTCP.Server@{BoneTCP.Server}!SendMessage@{SendMessage}}
+\index{SendMessage@{SendMessage}!BoneTCP.Server@{BoneTCP.Server}}
+\doxysubsubsection{\texorpdfstring{SendMessage()}{SendMessage()}}
+{\footnotesize\ttfamily void Bone\+TCP.\+Server.\+Send\+Message (\begin{DoxyParamCaption}\item[{string}]{message,  }\item[{IPEnd\+Point}]{target }\end{DoxyParamCaption})}
+
+
+
+Sends a message to an existing client connection. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em message} & Message contents to be sent\\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+Bone\+TCP/Server.\+cs\end{DoxyCompactItemize}

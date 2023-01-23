@@ -4,8 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BoneTCP
+namespace BoneTCP.Data
 {
+    /// <summary>
+    /// Represents a whole message to be sent using SlidingWindow
+    /// </summary>
     public class Message
     {
         public string Data = "";

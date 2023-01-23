@@ -1,0 +1,74 @@
+\hypertarget{class_bone_t_c_p_1_1_client}{}\doxysection{Bone\+TCP.\+Client Class Reference}
+\label{class_bone_t_c_p_1_1_client}\index{BoneTCP.Client@{BoneTCP.Client}}
+
+
+Class to represent a client that uses the sliding window protocol to send and receive messages.  
+
+
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{class_bone_t_c_p_1_1_client_a5f93efcf0f3c95d110637a54386d2cd7}{Client}} (string SERVER\+\_\+\+IP=\char`\"{}127.\+0.\+0.\+1\char`\"{}, int PORT=6900, bool enable\+Logging=false, int max\+Byte\+Size=1024)
+\begin{DoxyCompactList}\small\item\em Constructor for creating a client instance. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_bone_t_c_p_1_1_client_a0ac2524e835cc02f31debe1ec9e36422}{Send\+Message}} (string message)
+\begin{DoxyCompactList}\small\item\em Sends an message to server specified in the constructor. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{class_bone_t_c_p_1_1_client_af7f57c381dc4542ada25e86910f47c49}\label{class_bone_t_c_p_1_1_client_af7f57c381dc4542ada25e86910f47c49}} 
+Message\+Received\+Event\+Handler {\bfseries on\+Message\+Received}
+\begin{DoxyCompactList}\small\item\em Event raised when a message is succesfully received. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Properties}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{class_bone_t_c_p_1_1_client_a0645210bedb3bf39e5380c50152a7e25}\label{class_bone_t_c_p_1_1_client_a0645210bedb3bf39e5380c50152a7e25}} 
+int {\bfseries Running\+Port}\hspace{0.3cm}{\ttfamily  \mbox{[}get\mbox{]}}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Class to represent a client that uses the sliding window protocol to send and receive messages. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{class_bone_t_c_p_1_1_client_a5f93efcf0f3c95d110637a54386d2cd7}\label{class_bone_t_c_p_1_1_client_a5f93efcf0f3c95d110637a54386d2cd7}} 
+\index{BoneTCP.Client@{BoneTCP.Client}!Client@{Client}}
+\index{Client@{Client}!BoneTCP.Client@{BoneTCP.Client}}
+\doxysubsubsection{\texorpdfstring{Client()}{Client()}}
+{\footnotesize\ttfamily Bone\+TCP.\+Client.\+Client (\begin{DoxyParamCaption}\item[{string}]{SERVER\+\_\+\+IP = {\ttfamily \char`\"{}127.0.0.1\char`\"{}},  }\item[{int}]{PORT = {\ttfamily 6900},  }\item[{bool}]{enable\+Logging = {\ttfamily false},  }\item[{int}]{max\+Byte\+Size = {\ttfamily 1024} }\end{DoxyParamCaption})}
+
+
+
+Constructor for creating a client instance. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em SERVER\+\_\+\+IP} & Target IP Address\\
+\hline
+{\em PORT} & Target PORT\\
+\hline
+{\em enable\+Logging} & Enable logging to console\\
+\hline
+\end{DoxyParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{class_bone_t_c_p_1_1_client_a0ac2524e835cc02f31debe1ec9e36422}\label{class_bone_t_c_p_1_1_client_a0ac2524e835cc02f31debe1ec9e36422}} 
+\index{BoneTCP.Client@{BoneTCP.Client}!SendMessage@{SendMessage}}
+\index{SendMessage@{SendMessage}!BoneTCP.Client@{BoneTCP.Client}}
+\doxysubsubsection{\texorpdfstring{SendMessage()}{SendMessage()}}
+{\footnotesize\ttfamily void Bone\+TCP.\+Client.\+Send\+Message (\begin{DoxyParamCaption}\item[{string}]{message }\end{DoxyParamCaption})}
+
+
+
+Sends an message to server specified in the constructor. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em message} & Message contents to be sent\\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+Bone\+TCP/Client.\+cs\end{DoxyCompactItemize}

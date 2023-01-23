@@ -1,5 +1,5 @@
-﻿using BoneTCP;
-using BoneTCP.Data;
+﻿using BoneTCP.Data;
+using BoneTCP.Logging;
 using Pastel;
 using System;
 using System.Diagnostics;
@@ -78,12 +78,12 @@ namespace BoneTCP
         {
             // Set the window size and UDP client, and initialize the other variables
             windowFragments = new Fragment[0];
-            this.windowIndex = 0;
+            windowIndex = 0;
             this.windowSize = windowSize;
             this.client = client;
             this.endPoint = endPoint;
             this.enableLogging = enableLogging;
-            this.maxBytesPerMessage = maxMessageSizeBytes;
+            maxBytesPerMessage = maxMessageSizeBytes;
 
 
             // Set Timer
@@ -184,7 +184,7 @@ namespace BoneTCP
 
         private void beginReceiveThread()
         {
-            if(!receiveThreadActive)
+            if (!receiveThreadActive)
             {
                 receiveThreadActive = true;
                 new Thread(() =>
@@ -299,13 +299,14 @@ namespace BoneTCP
         /// <param name="e"></param>
         private void RetransmitWindowFrame(object sender, ElapsedEventArgs e)
         {
-            if (status != windowStatus.TRANSMIT || windowFragments.Length == 0 || (windowIndex >= windowFragments.Length))
+            if (status != windowStatus.TRANSMIT || windowFragments.Length == 0 || windowIndex >= windowFragments.Length)
             {
                 ResetResendTimer();
                 return;
             }
 
-            Console.WriteLine("\n\n");
+            if (enableLogging)
+                Console.WriteLine("\n\n");
 
             // Resend all frame messages
             for (int i = 0; i < windowSize; i++)
@@ -485,20 +486,20 @@ namespace BoneTCP
         /// <param name="frag"></param>
         private void registerMessageReceived(Fragment frag)
         {
-            
+
             // Check if we arent already full
-            if (windowIndex > (windowFragments.Length - 1))
+            if (windowIndex > windowFragments.Length - 1)
             {
                 return;
             }
 
-            Console.WriteLine("RECEIVER: POS " + windowIndex + "/" + (windowFragments.Length - 1) + " FRAG: " + frag.descriptor);
+            // Console.WriteLine("RECEIVER: POS " + windowIndex + "/" + (windowFragments.Length - 1) + " FRAG: " + frag.descriptor);
 
             // Insert fragment
             windowFragments[frag.descriptor] = frag;
 
             // Raise position
-            if (frag.descriptor == (windowIndex))
+            if (frag.descriptor == windowIndex)
             {
                 windowIndex++;
             }
@@ -512,7 +513,7 @@ namespace BoneTCP
         /// <param name="frag"></param>
         private void register_SetWindowLegth(Fragment frag)
         {
-            this.windowFragments = new Fragment[frag.descriptor];
+            windowFragments = new Fragment[frag.descriptor];
             windowIndex = 0;
 
             if (enableLogging)
@@ -536,9 +537,9 @@ namespace BoneTCP
 
             if (enableLogging)
                 SliderLogger.Log($"Receiver Reset... {windowFragments.Length}".Pastel(ConsoleColor.Yellow), client, endPoint.Port.ToString(), status.ToString());
-           
+
             resetWindow();
-        
+
         }
 
 
@@ -568,17 +569,17 @@ namespace BoneTCP
         /// <param name="frag"></param>
         private void register_ACK_Receive(Fragment frag)
         {
-            if(windowIndex >= windowFragments.Length)
+            if (windowIndex >= windowFragments.Length)
             {
                 return;
             }
 
-            if (frag.descriptor >= (windowIndex + 1))
+            if (frag.descriptor >= windowIndex + 1)
             {
                 windowIndex++;
             }
 
-            Console.WriteLine("SENDER: POS " + windowIndex + "/" + (windowFragments.Length - 1) + " FRAG: " + frag.descriptor);
+            // Console.WriteLine("SENDER: POS " + windowIndex + "/" + (windowFragments.Length - 1) + " FRAG: " + frag.descriptor);
 
             if (windowIndex >= windowFragments.Length)
             {
